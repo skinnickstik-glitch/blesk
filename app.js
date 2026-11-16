@@ -1,5 +1,7 @@
 const CFG = window.APP_CONFIG;
 const Store = window.Store;
+// ключи хранилища с префиксом приложения: несколько демо могут жить на одном домене
+const NS = (CFG.dbName || "app") + ":";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -61,8 +63,9 @@ function header(extra = "") {
 function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.classList.add("show")); setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 300); }, 2200); }
 
 // ================================ КЛИЕНТ ================================
-const draft = JSON.parse(localStorage.getItem("draft") || "null") || { cart: [], photos: [], form: {} };
-const saveDraft = () => { try { localStorage.setItem("draft", JSON.stringify({ ...draft, photos: [] })); } catch {} };
+const draft = JSON.parse(localStorage.getItem(NS + "draft") || "null") || { cart: [], photos: [], form: {} };
+draft.cart = (draft.cart || []).filter(l => CFG.items.some(i => i.id === l.itemId));
+const saveDraft = () => { try { localStorage.setItem(NS + "draft", JSON.stringify({ ...draft, photos: [] })); } catch {} };
 
 function days() {
   const out = [], d = new Date(); d.setHours(12);
@@ -190,7 +193,7 @@ async function submit() {
     estimate: Math.round(t.final), photos: draft.photos };
   try {
     const r = await Store.create(req);
-    const mine = JSON.parse(localStorage.getItem("myRequests") || "[]"); mine.unshift(r.id); localStorage.setItem("myRequests", JSON.stringify(mine.slice(0, 20)));
+    const mine = JSON.parse(localStorage.getItem(NS + "myRequests") || "[]"); mine.unshift(r.id); localStorage.setItem(NS + "myRequests", JSON.stringify(mine.slice(0, 20)));
     draft.cart = []; draft.photos = []; saveDraft();
     location.hash = "#/r/" + r.id;
   } catch (e) { toast("Не удалось отправить. Попробуйте ещё раз"); btn.disabled = false; btn.textContent = "Отправить заявку"; }
@@ -225,12 +228,12 @@ async function renderStatus(id) {
 // ================================ КАБИНЕТ ================================
 let tab = "requests", filter = "all";
 function renderAdmin() {
-  if (sessionStorage.getItem("authed") !== "1") return renderPin();
+  if (sessionStorage.getItem(NS + "authed") !== "1") return renderPin();
   const app = $("#app");
   app.innerHTML = header(`<button class="call" id="logout" title="Выйти">⎋</button>`) + `<main class="admin">
     <nav class="tabs">${[["requests", "Заявки"], ["prices", "Прайс"], ["biz", "Бизнес"]].map(([k, t]) => `<button data-t="${k}" class="${tab === k ? "on" : ""}">${t}</button>`).join("")}</nav>
     <div id="pane"></div></main>`;
-  $("#logout").onclick = () => { sessionStorage.removeItem("authed"); renderAdmin(); };
+  $("#logout").onclick = () => { sessionStorage.removeItem(NS + "authed"); renderAdmin(); };
   $$(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; renderAdmin(); });
   ({ requests: paneRequests, prices: panePrices, biz: paneBiz })[tab]();
 }
@@ -238,7 +241,7 @@ function renderPin() {
   $("#app").innerHTML = header() + `<main class="admin"><div class="card pin"><h2>Кабинет студии</h2><p>Введите PIN-код</p>
     <input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><button class="btn big" id="go">Войти</button>
     ${CFG.storage === "local" ? `<p class="note">Демо: PIN <b>${esc(CFG.adminPin)}</b></p>` : ""}</div></main>`;
-  const go = async () => { if (await Store.login($("#pin").value)) { sessionStorage.setItem("authed", "1"); renderAdmin(); } else toast("Неверный PIN"); };
+  const go = async () => { if (await Store.login($("#pin").value)) { sessionStorage.setItem(NS + "authed", "1"); renderAdmin(); } else toast("Неверный PIN"); };
   $("#go").onclick = go; $("#pin").onkeydown = e => { if (e.key === "Enter") go(); }; $("#pin").focus();
 }
 async function paneRequests() {

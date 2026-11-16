@@ -26,6 +26,7 @@ window.APP_CONFIG = {
     text: "#17222e",
   },
 
+  dbName: "blesk-demo",          // имя базы/префикс ключей (уникально для каждой копии)
   adminPin: "1234",          // PIN кабинета студии (в демо)
   storage: "local",          // "local" — всё в браузере (демо); "remote" — свой сервер (server/)
   apiBase: "/api",

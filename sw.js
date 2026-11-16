@@ -1,5 +1,5 @@
 // Офлайн-кэш оболочки приложения. При изменении файлов увеличьте версию.
-const V = "blesk-v2";
+const V = "blesk-v3";
 const ASSETS = ["./", "index.html", "styles.css", "config.js", "store.js", "app.js", "scene.js", "vendor/three.module.min.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
